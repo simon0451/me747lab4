@@ -4,9 +4,10 @@
 %Lab 4
 clear all;
 close all;
-load lab4data.mat
+
 
 %% Part 1 Potentiometer Accelerometer
+load lab4data.mat
 mass_nobucket = [20 40 60 80 100 120 140 160 180 200]; %grams
 bucketWeight = 15.9; %grams
 testmass = mass_nobucket+bucketWeight; %testmass (g) is the total mass on the sensor
@@ -41,18 +42,19 @@ percentovershoot = finalvalue/bottompeak; %finding the percent overshoot for use
 zeta = .52; %from the table, estimated value
 peaktime = .029; %s, the time to the peak - obtained visually from plot
 omegan = pi/(peaktime*(sqrt(1-(zeta^2)))); %rad/s, natural frequency
-m = ((.454-.392)/sensitivity)*0.00194256; %slugs, effective mass
+w = ((.454-.392)/sensitivity); %Oz, equivalent weight
+m = w*0.00194256; %slugs, effective mass
 k = (16/12)*(omegan^2)*m; %oz/in, the spring constant - !highly dependant on peak time (16/12 for converison from slugs to Oz/in)
+b = 2*zeta/omegan*k; %damping ratio, unknown imperial units with ounces and inches
 
+accelsensitivity = ((m*16/12)*sensitivity); %((Oz*s*s)/ft)*(V/Oz) -> V/(in/(s*s)) divided by 12 to convert from feet to inches, 16 to convert
+maxaccel = (.7781/accelsensitivity); %in/(s*s), maximum sensor acceleration (is about 12 and a half Gs) (.7781 is resting voltage)
 
-
-
-
-
-
-
-
-
+system = tf(accelsensitivity,[(m*16/12)/k b/k 1]);
+figure(3);
+bode(system);
+title('Output Voltage vs. Acceleration')
+grid on
 
 
 
