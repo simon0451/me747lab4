@@ -56,7 +56,7 @@ bode(system);
 title('Output Voltage vs. Acceleration')
 grid on
 
-%% Part 2.1 Piezoelectric Force Sensor
+%% Part 2 Piezoelectric Force Sensor
 
 %calibration data
 %everything is called -two now because it's part two
@@ -84,36 +84,24 @@ load lab4data.mat
 smdvolt = smooth(decayvoltage);
 smdvolt = smooth(smdvolt); % !warning! more advanced smoothing techniques require too much computational power
 
+figure(5)
+plot(decaytime,smdvolt)
+grid on
+
 vstart = .11; %from visual inspection of figure 5
 tstart = .06291; %s, start time corresponding to vstart
 
 vtau = .632*(smdvolt(end)-vstart)+vstart; %finding the time constant with the 63.2% method
 
 for i = length(decaytime):-1:1
-    if smdvolt(i) > vtau %finding the point where voltage exceeds vtau, working backwards
-        tauindex = i;
+    if smdvolt(i) > vtau %finding the point where 
+        tauPoint = i;
         break;
     end
 end
 
-ttau = decaytime(tauindex); %s, finding the point in time of tau
-
-figure(5)
-plot(decaytime,smdvolt,ttau,vtau,'o')
-title('Piezo Decay Test Plot')
-xlabel('Time (s)')
-ylabel('Output Voltage (V)')
-legend('Voltage Response','First Time Constant')
-grid on
-
-figure(6)
-plot(omegat,omegav)
 
 
-deltat = .001277-.0006732; %time difference between points, from inspection of figure 6 - second peaks
-dampednaturalfrequency = 1/deltat*2*pi; %rad/s
-
-%% Part 2.2 Piezoelectric Force Sensor
 
 
 
