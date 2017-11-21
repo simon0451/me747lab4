@@ -214,8 +214,8 @@ grid on
 %part c
 
 figure(12)
-hold on
 plot(acceltime,accel,acceltime,LVT,[0 0],[-3 3],'--',[0.068 0.068],[-3 3],'--',[0.087 0.087],[-3 3],'--',[0.12 0.12],[-3 3],'--',[0.57 0.57],[-3 3],'--') 
+title('Annotated Response')
 xlabel('Time (s)')
 ylabel('LVT and Accelerometer Output (V)')
 legend('Accelerometer','Velocity (LVT)','Beginning of Drop','First Contact','Max Depth','Bouncing Off','Resting on Foam')
