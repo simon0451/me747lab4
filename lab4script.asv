@@ -56,7 +56,7 @@ bode(system);
 title('Output Voltage vs. Acceleration')
 grid on
 
-%% Part 2 Piezoelectric Force Sensor
+%% Part 2.1 Piezoelectric Force Sensor
 
 %calibration data
 %everything is called -two now because it's part two
@@ -84,21 +84,151 @@ load lab4data.mat
 smdvolt = smooth(decayvoltage);
 smdvolt = smooth(smdvolt); % !warning! more advanced smoothing techniques require too much computational power
 
-figure(5)
-plot(decaytime,smdvolt)
-grid on
-
 vstart = .11; %from visual inspection of figure 5
 tstart = .06291; %s, start time corresponding to vstart
 
 vtau = .632*(smdvolt(end)-vstart)+vstart; %finding the time constant with the 63.2% method
 
 for i = length(decaytime):-1:1
-    if smdvolt(i) > vtau %finding the point where 
-        tauPoint = i;
+    if smdvolt(i) > vtau %finding the point where voltage exceeds vtau, working in backwards direction
+        tauindex = i;
         break;
     end
 end
+
+ttau = decaytime(tauindex); %s, finding the point in time of tau
+
+figure(5)
+plot(decaytime,smdvolt,ttau,vtau,'o')
+title('Piezo Decay Test Plot')
+xlabel('Time (s)')
+ylabel('Output Voltage (V)')
+legend('Voltage Response','First Time Constant')
+grid on
+
+figure(6)
+plot(omegat,omegav)
+
+
+deltat = .001277-.0006732; %time difference between points, from inspection of figure 6 - second peaks
+dampednaturalfrequency = 1/deltat*2*pi; %rad/s
+
+%% Part 2.2 Piezoelectric Force Sensor
+
+load lab4data.mat
+avgv = mean(dvoltage(1:200)); %finding an average voltage to adjust for shift
+dvoltage = dvoltage-avgv; %subtracting the difference from the voltage array
+timeint = timeint-.6134; %setting the time such that the peturbation starts at t = 0 s
+
+[~,~,maxvoltage,~] = peakdet(dvoltage,0.002);
+Td = diff(timeint(maxvoltage));
+Tdselect = Td(1); %picking first value
+
+%log decrement method
+n = 2; %two peak separation
+sigman = (1/(n-1))*log(.0144/.003298); %peak numbers picked from visual inspection
+zetan = sigman/sqrt((4*pi^2)+(sigman^2));
+
+wdn = 2*pi/Tdselect; %rad/s, finding damped natural frequency
+wnn = wdn/sqrt(1-(zetan^2)); %rad/s, converting to undamped with zetan
+
+mn = 2/32.17; %slugs, mass of the plate
+kn = ((wnn^2)*mn)/12; %lb/in, spring constant
+K = 1/(kn*16); %gain K
+bn = 2*zetan/wnn*kn; %damping coefficient, should be lb*s/in
+
+system2 = tf(K, [1/(wnn^2) 2*zetan/wnn 1]);
+
+figure(7);
+impulse(system2);
+hold on;
+plot(timeint,dvoltage/1000/sensitivitytwo,'g');
+legend('Simulated System','Experimental Parameters')
+
+figure(8)
+plot(timeint,dvoltage)
+title('test')
+xlabel('Time (s)')
+ylabel('Voltage (V)')
+grid on
+
+%% Part 3 Vibration Analysis
+load lab4data.mat
+acceltime = LVTaccel(:,1);
+acceltime = acceltime+.04929;
+accel = LVTaccel(:,2);
+LVT = LVTaccel(:,4); %measures velocity
+
+gvolts = -.1086; %V, from gravity, the acceleration during freefall, picked from a stable point on the plot
+accelerometersensitivity = gvolts/386.09; %V/(in/s^2), the sensitivity of the acceleromter
+
+%using method suggested by lab partner
+startindex = 0;
+endindex = 0;
+for i = 1:length(acceltime)
+    if (acceltime(i)>0.029 && endindex==0)
+        endindex = i;
+        break;
+    elseif (acceltime(i)>0.0064 && startindex==0)
+        startindex = i;
+    end
+end
+
+timeint = acceltime(endindex)-acceltime(startindex);
+dvelocity = timeint*386.09; %in/s
+LVTinterval = LVT(endindex)-LVT(startindex);
+LVTsensitivity = abs(LVTinterval/dvelocity); %LVT sensitivity V/(in/s)
+
+figure(9)
+plot(acceltime,accel,acceltime,LVT)%,acceltime(startindex),accel(startindex),'o',acceltime(endindex),accel(endindex),'o')
+legend('Accelerometer','Velocity (LVT)')
+title('LVT and Accelerometer Voltage Response')
+ylabel('Voltage (V)')
+xlabel('Time (s)')
+grid on
+
+%part b
+integratedacceleration = cumtrapz(acceltime,(accel/accelerometersensitivity));
+
+figure(10);
+plot(acceltime,integratedacceleration,acceltime,LVT/LVTsensitivity);
+title('Unadjusted Integrated Acceleration vs. LVT Response')
+ylabel('Velocity (in/s)')
+xlabel('Time (s)')
+grid on
+
+%normalizationslope = (integratedacceleration(end)-integratedacceleration(1))/(acceltime(end)-acceltime(1)); %slope of the skewed curve
+%Normalizing
+deltaY = integratedacceleration(end)-integratedacceleration(1); %finding the total vertical skew
+biasRange = linspace(0,deltaY,length(integratedacceleration)); %creating an array of deltaYs
+biasRange = biasRange'; %turning row vector into column vector
+normia = integratedacceleration-biasRange; %subtracting bias from the original data
+
+figure(11);
+plot(acceltime,normia,acceltime,LVT/LVTsensitivity);
+title('Adjusted Integrated Acceleration vs. LVT Response')
+ylabel('Velocity (in/s)')
+xlabel('Time (s)')
+grid on
+
+%part c
+
+figure(12);
+hold on;
+plot(acceltime,accel,acceltime,LVT,[0 0],[-3 3],[0.068 0.068],[-3 3]) 
+% plot([0.0909 0.0909],[-3 2]) %max depth in foam
+% plot([0.11 0.11],[-3 2]); %bouncing off foam
+% plot([0.2494 0.2494],[-3 2],[0.5 0.5 0.5]) %resting on foam
+xlabel('Time (s)')
+ylabel('LVT and Accelerometer Output (V)')
+legend('Accelerometer','Velocity (LVT)','eginning of the drop','first contact','max depth'
+)
+grid on
+
+
+
+
+
 
 
 
